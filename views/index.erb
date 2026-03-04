@@ -1,0 +1,70 @@
+<h1>Todos</h1>
+
+<form class="add-form" action="/todos" method="post">
+  <input type="text" name="title" placeholder="What needs doing?" autofocus autocomplete="off">
+  <button type="submit">Add</button>
+</form>
+
+<% if @todos.empty? %>
+  <p class="empty">Nothing to do. Add something above.</p>
+<% else %>
+  <ul class="todo-list">
+    <% @todos.each_with_index do |todo, i| %>
+      <li class="todo-item <%= 'done' if todo.completed %> <%= 'priority' if i < 3 %>"
+          draggable="true"
+          data-id="<%= todo.id %>">
+        <form action="/todos/<%= todo.id %>/toggle" method="post">
+          <input type="checkbox"
+                 id="todo-<%= todo.id %>"
+                 onchange="this.form.submit()"
+                 <%= "checked" if todo.completed %>>
+        </form>
+        <label for="todo-<%= todo.id %>"><%= Rack::Utils.escape_html(todo.title) %></label>
+        <form action="/todos/<%= todo.id %>/delete" method="post">
+          <button class="delete-btn" type="submit" title="Delete">&#x2715;</button>
+        </form>
+      </li>
+    <% end %>
+  </ul>
+<% end %>
+
+<script>
+  const list = document.querySelector(".todo-list");
+  if (list) {
+    let dragging = null;
+
+    list.addEventListener("dragstart", e => {
+      dragging = e.target.closest("li");
+      dragging.classList.add("dragging");
+    });
+
+    list.addEventListener("dragend", () => {
+      dragging.classList.remove("dragging");
+      dragging = null;
+      saveOrder();
+    });
+
+    list.addEventListener("dragover", e => {
+      e.preventDefault();
+      const target = e.target.closest("li");
+      if (!target || target === dragging) return;
+      const mid = target.getBoundingClientRect().top + target.offsetHeight / 2;
+      target.parentNode.insertBefore(dragging, e.clientY < mid ? target : target.nextSibling);
+    });
+
+    function saveOrder() {
+      const ids = Array.from(list.querySelectorAll("li")).map(li => li.dataset.id);
+      fetch("/todos/reorder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids })
+      }).then(() => updatePriorityClasses());
+    }
+
+    function updatePriorityClasses() {
+      list.querySelectorAll("li").forEach((li, i) => {
+        li.classList.toggle("priority", i < 3);
+      });
+    }
+  }
+</script>
