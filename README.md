@@ -5,7 +5,7 @@ psql db for persistent tasks
 
 
 ## how?
-
+0. run `createdb todo_widget` where you have your postgres installation.
 1. create `.env` with `DATABASE_URL` pointing to your db.
 2. run db/migrate.rb and db/add_position.rb to create tables.
 3. start get organised.
